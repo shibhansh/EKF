@@ -1,22 +1,25 @@
 #include <iostream>
 #include <vector>
-#include <eigen3>
+#include <Eigen/Dense>
 
 using namespace Eigen;
 using namespace std;
 
-double pi_to_pi(double angle){
+template <typename Derived>
+
+
+float pi_to_pi(float angle){
 	angle = fmod(angle, 2*3.14);
 	if(angle > 3.14){
 		angle = angle - 2*3.14;
 	}
 	else if (angle < -3.14){
-		angle = angle + 2*3.14
+		angle = angle + 2*3.14;
 	}
-	return ;
+	return angle;
 }
 
-void EKF_predict(double* x,double** P,double v,double g,double** Q,double dt){
+Matrix3f EKF_predict(float* x,const Ref<const Matrix3f>& P,float v,float g,const Ref<const Matrix2f>& Q,float dt){
 // function [xn,Pn]= predict (x,P,v,g,Q,WB,dt)
 
 //  Inputs:
@@ -30,16 +33,38 @@ void EKF_predict(double* x,double** P,double v,double g,double** Q,double dt){
  
 //  <------------------------- TO DO -------------------------->
  
-	// double J = {	{1, 0, -v*dt*sin(g + x[3])},
-	// 	 	   		{0, 1, v*dt*cos(g + x[3])},
-	//  		   		{0, 0, 1}		};
-	// double M = {	{dt*cos(g + x[3]),-v*dt*sin(g + x[3])},
-	// 				{dt*sin(g + x[3]),v*dt*cos(g + x[3])},
-	// 				{0,1}		};
+	Matrix<float, 3, 3> J;
+	J <<	1, 0, -v*dt*sin(g + x[2]),
+		 	0, 1, v*dt*cos(g + x[2]),
+	 		0, 0, 1;
 
-	// // P = J * P * J' + M * Q * M';
+	Matrix<float, 3, 2> M;
+	M << 	dt*cos(g + x[2]),-v*dt*sin(g + x[2]),
+			dt*sin(g + x[2]),v*dt*cos(g + x[2]),
+			0,1;
 
-	// x[1] = x[1] + v * dt * cos(g + x[3]);
-	// x[2] = x[2] + v * dt * sin(g + x[3]); 
-	x[3] = pi_to_pi(x[3] + g);
+	Matrix<float, 3, 3> Temp;
+	Temp = J * P * J.transpose() + M * Q * M.transpose();
+	
+	x[0] = x[0] + v * dt * cos(g + x[2]);
+	x[1] = x[1] + v * dt * sin(g + x[2]); 
+	x[2] = x[2] + g;
+	return Temp;
+}
+
+int main(){
+	float x[3] = {1,2,3} ;
+	Matrix<float, 3, 3> P;
+	P <<	1, 0, 1,
+		 	0, 1, 1,
+	 		0, 0, 1;
+	float v = 0.1;
+	float g = 0.001;
+	Matrix<float, 2, 2> Q;
+	Q <<	1, 0,
+		 	0, 1;
+	float dt = 0.2;
+	Matrix3f alpha;
+	alpha = EKF_predict(x,P,v,g,Q,dt);
+	return 0;
 }
